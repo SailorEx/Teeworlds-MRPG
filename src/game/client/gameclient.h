@@ -288,8 +288,6 @@ public:
 	virtual const char *NetVersionHashReal() const;
 	virtual int ClientVersion() const;
 	static void GetPlayerLabel(char* aBuf, int BufferSize, int ClientID, const char* ClientName);
-	bool IsXmas() const;
-	bool IsEaster() const;
 	void StartRendering();
 	
 	//
@@ -297,6 +295,10 @@ public:
 	void SendAuthPack(const char* Login, const char* Password, bool StateRegistered);
 	void SetAtmosphereMusicMRPG(int SoundID, float Vol);
 	void UpdateStateMmoMusic();
+
+	bool IsXmas() const;
+	bool IsEaster() const;
+	bool IsWorldPaused() const { return m_Snap.m_pGameData && (m_Snap.m_pGameData->m_GameStateFlags & (GAMESTATEFLAG_PAUSED | GAMESTATEFLAG_ROUNDOVER | GAMESTATEFLAG_GAMEOVER)); }
 
 	//
 	void DoEnterMessage(const char *pName, int ClientID, int Team);
