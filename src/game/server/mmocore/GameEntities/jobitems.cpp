@@ -164,8 +164,8 @@ void CJobItems::Snap(int SnappingClient)
 		if(!pObj)
 			return;
 
-		pObj->m_X = (int)m_Pos.x;
-		pObj->m_Y = (int)m_Pos.y;
+		pObj->m_X = round_to_int(m_Pos.x);
+		pObj->m_Y = round_to_int(m_Pos.y);
 		pObj->m_Type = SwitchToObject(true);
 		return;
 	}
@@ -174,7 +174,7 @@ void CJobItems::Snap(int SnappingClient)
 	if(!pP)
 		return;
 
-	pP->m_X = (int)m_Pos.x;
-	pP->m_Y = (int)m_Pos.y;
+	pP->m_X = round_to_int(m_Pos.x);
+	pP->m_Y = round_to_int(m_Pos.y);
 	pP->m_Type = SwitchToObject(false);
 }

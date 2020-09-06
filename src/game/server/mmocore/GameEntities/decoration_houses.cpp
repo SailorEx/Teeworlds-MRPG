@@ -53,8 +53,8 @@ void CDecorationHouses::Snap(int SnappingClient)
 		if (!pP)
 			return;
 
-		pP->m_X = (int)m_Pos.x;
-		pP->m_Y = (int)m_Pos.y;
+		pP->m_X = round_to_int(m_Pos.x);
+		pP->m_Y = round_to_int(m_Pos.y);
 		pP->m_Type = SwitchToObject(false);
 		return;
 	}
@@ -69,8 +69,8 @@ void CDecorationHouses::Snap(int SnappingClient)
 		if (!pObj)
 			return;
 
-		pObj->m_X = (int)PosStart.x;
-		pObj->m_Y = (int)PosStart.y;
+		pObj->m_X = round_to_int(PosStart.x);
+		pObj->m_Y = round_to_int(PosStart.y);
 		pObj->m_VelX = 0;
 		pObj->m_VelY = 0;
 		pObj->m_StartTick = Server()->Tick() - 1;
@@ -82,7 +82,7 @@ void CDecorationHouses::Snap(int SnappingClient)
 	if (!pP)
 		return;
 
-	pP->m_X = (int)m_Pos.x;
-	pP->m_Y = (int)m_Pos.y;
+	pP->m_X = round_to_int(m_Pos.x);
+	pP->m_Y = round_to_int(m_Pos.y);
 	pP->m_Type = SwitchToObject(false);
 }

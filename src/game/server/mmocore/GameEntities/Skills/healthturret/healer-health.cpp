@@ -93,8 +93,8 @@ void CHealthHealer::Snap(int SnappingClient)
 		if(!pObj)
 			return;
 
-		pObj->m_X = (int)VertexPos.x;
-		pObj->m_Y = (int)VertexPos.y;
+		pObj->m_X = round_to_int(VertexPos.x);
+		pObj->m_Y = round_to_int(VertexPos.y);
 		pObj->m_Type = PICKUP_HEALTH;
 	}
 	
@@ -102,7 +102,7 @@ void CHealthHealer::Snap(int SnappingClient)
 	if(!pObj)
 		return;
 
-	pObj->m_X = (int)m_Pos.x;
-	pObj->m_Y = (int)m_Pos.y;
+	pObj->m_X = round_to_int(m_Pos.x);
+	pObj->m_Y = round_to_int(m_Pos.y);
 	pObj->m_Type = PICKUP_ARMOR;
 }

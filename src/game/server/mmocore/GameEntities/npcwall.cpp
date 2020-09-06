@@ -46,9 +46,9 @@ void CNPCWall::Snap(int SnappingClient)
 	if(!pObj)
 		return;
 
-	pObj->m_X = (int)m_Pos.x;
-	pObj->m_Y = (int)m_Pos.y;
-	pObj->m_FromX = (int)m_PosTo.x;
-	pObj->m_FromY = (int)m_PosTo.y;
+	pObj->m_X = round_to_int(m_Pos.x);
+	pObj->m_Y = round_to_int(m_Pos.y);
+	pObj->m_FromX = round_to_int(m_PosTo.x);
+	pObj->m_FromY = round_to_int(m_PosTo.y);
 	pObj->m_StartTick = Server()->Tick()-6; 
 }

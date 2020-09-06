@@ -65,8 +65,8 @@ void CLogicWall::Snap(int SnappingClient)
 	if(!pP)
 		return;
 
-	pP->m_X = (int)m_Pos.x;
-	pP->m_Y = (int)m_Pos.y;
+	pP->m_X = round_to_int(m_Pos.x);
+	pP->m_Y = round_to_int(m_Pos.y);
 	pP->m_Type = 1;
 }
 
@@ -116,8 +116,8 @@ void CLogicWallFire::Snap(int SnappingClient)
 		CNetObj_MmoProj *pProj = static_cast<CNetObj_MmoProj *>(Server()->SnapNewItem(NETOBJTYPE_MMOPROJ, GetID(), sizeof(CNetObj_MmoProj)));
 		if(!pProj)
 			return;
-		pProj->m_X = (int)m_Pos.x;
-		pProj->m_Y = (int)m_Pos.y;
+		pProj->m_X = round_to_int(m_Pos.x);
+		pProj->m_Y = round_to_int(m_Pos.y);
 		pProj->m_VelX = m_Dir.x;
 		pProj->m_VelY = m_Dir.y;
 		pProj->m_StartTick = Server()->Tick()-3;
@@ -129,8 +129,8 @@ void CLogicWallFire::Snap(int SnappingClient)
 	if(!pP)
 		return;
 
-	pP->m_X = (int)m_Pos.x;
-	pP->m_Y = (int)m_Pos.y;
+	pP->m_X = round_to_int(m_Pos.x);
+	pP->m_Y = round_to_int(m_Pos.y);
 	pP->m_Type = 1;
 }
 
@@ -188,10 +188,10 @@ void CLogicWallWall::Snap(int SnappingClient)
 	if (!pObj)
 		return;
 
-	pObj->m_X = int(m_Pos.x);
-	pObj->m_Y = int(m_Pos.y);
-	pObj->m_FromX = int(m_PosTo.x);
-	pObj->m_FromY = int(m_PosTo.y);
+	pObj->m_X = round_to_int(m_Pos.x);
+	pObj->m_Y = round_to_int(m_Pos.y);
+	pObj->m_FromX = round_to_int(m_PosTo.x);
+	pObj->m_FromY = round_to_int(m_PosTo.y);
 	pObj->m_StartTick = Server()->Tick()-2;
 }
 
@@ -238,10 +238,10 @@ void CLogicWallLine::Snap(int SnappingClient)
 	if (!pObj)
 		return;
 
-	pObj->m_X = int(m_Pos.x);
-	pObj->m_Y = int(m_Pos.y);
-	pObj->m_FromX = int(m_PosTo.x);
-	pObj->m_FromY = int(m_PosTo.y);
+	pObj->m_X = round_to_int(m_Pos.x);
+	pObj->m_Y = round_to_int(m_Pos.y);
+	pObj->m_FromX = round_to_int(m_PosTo.x);
+	pObj->m_FromY = round_to_int(m_PosTo.y);
 	pObj->m_StartTick = Server()->Tick()-5;
 }
 
@@ -296,10 +296,10 @@ void CLogicDoorKey::Snap(int SnappingClient)
 	if (!pObj)
 		return;
 
-	pObj->m_X = int(m_Pos.x);
-	pObj->m_Y = int(m_Pos.y);
-	pObj->m_FromX = int(m_PosTo.x);
-	pObj->m_FromY = int(m_PosTo.y);
+	pObj->m_X = round_to_int(m_Pos.x);
+	pObj->m_Y = round_to_int(m_Pos.y);
+	pObj->m_FromX = round_to_int(m_PosTo.x);
+	pObj->m_FromY = round_to_int(m_PosTo.y);
 	pObj->m_StartTick = Server()->Tick()-3;
 }
 
@@ -366,9 +366,9 @@ void CLogicDungeonDoorKey::Snap(int SnappingClient)
 	if (!pObj)
 		return;
 
-	pObj->m_X = int(m_Pos.x);
-	pObj->m_Y = int(m_Pos.y);
-	pObj->m_FromX = int(m_PosTo.x);
-	pObj->m_FromY = int(m_PosTo.y);
+	pObj->m_X = round_to_int(m_Pos.x);
+	pObj->m_Y = round_to_int(m_Pos.y);
+	pObj->m_FromX = round_to_int(m_PosTo.x);
+	pObj->m_FromY = round_to_int(m_PosTo.y);
 	pObj->m_StartTick = Server()->Tick()-3;
 }

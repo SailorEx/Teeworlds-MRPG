@@ -113,8 +113,8 @@ void CSnapFull::Snap(int SnappingClient)
 			if(!pObj)
 				continue;
 
-			pObj->m_X = (int)PosStart.x;
-			pObj->m_Y = (int)PosStart.y;
+			pObj->m_X = round_to_int(PosStart.x);
+			pObj->m_Y = round_to_int(PosStart.y);
 			pObj->m_VelX = 0;
 			pObj->m_VelY = 0;
 			pObj->m_StartTick = Server()->Tick()-1;
@@ -126,8 +126,8 @@ void CSnapFull::Snap(int SnappingClient)
 		if(!pObj)
 			continue;
 
-		pObj->m_X = (int)PosStart.x;
-		pObj->m_Y = (int)PosStart.y;
+		pObj->m_X = round_to_int(PosStart.x);
+		pObj->m_Y = round_to_int(PosStart.y);
 		pObj->m_Type = items.m_Type;		
 	}
 }

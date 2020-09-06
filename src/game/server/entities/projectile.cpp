@@ -7,10 +7,11 @@
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
 		int Damage, bool Explosive, float Force, int SoundImpact, int Weapon)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, Pos)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, vec2(round_to_int(Pos.x), round_to_int(Pos.y)))
 {
 	m_Type = Type;
-	m_Direction = Dir;
+	m_Direction.x = round_to_int(Dir.x * 100.0f) / 100.0f;
+	m_Direction.y = round_to_int(Dir.y * 100.0f) / 100.0f;
 	m_LifeSpan = Span;
 	m_Owner = Owner;
 	m_Force = Force;
@@ -109,10 +110,10 @@ void CProjectile::Snap(int SnappingClient)
 	 	if(!pProj)
 	 		return;
 
-	 	pProj->m_X = (int)m_Pos.x;
-	 	pProj->m_Y = (int)m_Pos.y;
-	 	pProj->m_VelX = (int)(m_Direction.x*100.0f);
-	 	pProj->m_VelY = (int)(m_Direction.y*100.0f);
+		pProj->m_X = round_to_int(m_Pos.x);
+		pProj->m_Y = round_to_int(m_Pos.y);
+		pProj->m_VelX = round_to_int(m_Direction.x * 100.0f);
+		pProj->m_VelY = round_to_int(m_Direction.y * 100.0f);
 	 	pProj->m_StartTick = m_StartTick;
 	 	pProj->m_Type = m_OwnerMmoProjType;
 	 	pProj->m_Weapon = m_Type;
@@ -122,10 +123,10 @@ void CProjectile::Snap(int SnappingClient)
 	CNetObj_Projectile* pProj = static_cast<CNetObj_Projectile*>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
 	if (pProj)
 	{
-		pProj->m_X = (int)m_Pos.x;
-		pProj->m_Y = (int)m_Pos.y;
-		pProj->m_VelX = (int)(m_Direction.x * 100.0f);
-		pProj->m_VelY = (int)(m_Direction.y * 100.0f);
+		pProj->m_X = round_to_int(m_Pos.x);
+		pProj->m_Y = round_to_int(m_Pos.y);
+		pProj->m_VelX = round_to_int(m_Direction.x * 100.0f);
+		pProj->m_VelY = round_to_int(m_Direction.y * 100.0f);
 		pProj->m_StartTick = m_StartTick;
 		pProj->m_Type = m_Type;
 	}

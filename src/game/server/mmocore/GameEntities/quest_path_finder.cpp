@@ -51,10 +51,10 @@ void CQuestPathFinder::Snap(int SnappingClient)
 		if (!pMmoP)
 			return;
 
-		pMmoP->m_X = (int)m_Pos.x;
-		pMmoP->m_Y = (int)m_Pos.y;
+		pMmoP->m_X = round_to_int(m_Pos.x);
+		pMmoP->m_Y = round_to_int(m_Pos.y);
 		pMmoP->m_Type = (m_MainScenario ? (int)MMO_PICKUP_MAIN_ARROW : (int)MMO_PICKUP_SIDE_ARROW);
-		pMmoP->m_Angle = (int)(angle(vec2(Direction.x, Direction.y)) * 256.0f);
+		pMmoP->m_Angle = round_to_int(angle(vec2(Direction.x, Direction.y)) * 256.0f);
 		return;
 	}
 
@@ -62,7 +62,7 @@ void CQuestPathFinder::Snap(int SnappingClient)
 	if(!pP)
 		return;
 
-	pP->m_X = (int)m_Pos.x;
-	pP->m_Y = (int)m_Pos.y;
+	pP->m_X = round_to_int(m_Pos.x);
+	pP->m_Y = round_to_int(m_Pos.y);
 	pP->m_Type = (m_MainScenario ? (int)PICKUP_HEALTH : (int)PICKUP_ARMOR);
 } 

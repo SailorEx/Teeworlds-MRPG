@@ -151,10 +151,10 @@ void CDropItem::Snap(int SnappingClient)
 		if(!pMmoPickup)
 			return;
 
-		pMmoPickup->m_X = (int)m_Pos.x;
-		pMmoPickup->m_Y = (int)m_Pos.y;
+		pMmoPickup->m_X = round_to_int(m_Pos.x);
+		pMmoPickup->m_Y = round_to_int(m_Pos.y);
 		pMmoPickup->m_Type = MMO_PICKUP_BOX;
-		pMmoPickup->m_Angle = (int)(m_Angle * 256.0f);
+		pMmoPickup->m_Angle = round_to_int(m_Angle * 256.0f);
 		return;
 	}
 
@@ -162,8 +162,8 @@ void CDropItem::Snap(int SnappingClient)
 	CNetObj_Pickup *pPickup = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), sizeof(CNetObj_Pickup)));
 	if(pPickup)
 	{
-		pPickup->m_X = (int)m_Pos.x;
-		pPickup->m_Y = (int)m_Pos.y;
+		pPickup->m_X = round_to_int(m_Pos.x);
+		pPickup->m_Y = round_to_int(m_Pos.y);
 		pPickup->m_Type = PICKUP_GUN;
 	}
 
@@ -178,10 +178,10 @@ void CDropItem::Snap(int SnappingClient)
 
 		vec2 Pos = m_Pos + vec2(Radius * cos(AngleStart + AngleStep * i), Radius * sin(AngleStart + AngleStep * i));
 		vec2 PosTo = m_Pos + vec2(Radius * cos(AngleStart + AngleStep * (i+1)), Radius * sin(AngleStart + AngleStep * (i+1)));
-		pRifleObj->m_X = (int)Pos.x;
-		pRifleObj->m_Y = (int)Pos.y;
-		pRifleObj->m_FromX = (int)PosTo.x;
-		pRifleObj->m_FromY = (int)PosTo.y;
+		pRifleObj->m_X = round_to_int(Pos.x);
+		pRifleObj->m_Y = round_to_int(Pos.y);
+		pRifleObj->m_FromX = round_to_int(PosTo.x);
+		pRifleObj->m_FromY = round_to_int(PosTo.y);
 		pRifleObj->m_StartTick = Server()->Tick() - 3;
 	}
 } 

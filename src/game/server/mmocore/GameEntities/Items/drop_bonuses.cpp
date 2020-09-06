@@ -94,10 +94,10 @@ void CDropBonuses::Snap(int SnappingClient)
 		if (!pObj)
 			return;
 
-		pObj->m_X = (int)m_Pos.x;
-		pObj->m_Y = (int)m_Pos.y;
+		pObj->m_X = round_to_int(m_Pos.x);
+		pObj->m_Y = round_to_int(m_Pos.y);
 		pObj->m_Type = MMO_PICKUP_EXPERIENCE;
-		pObj->m_Angle = (int)(m_Angle * 256.0f);
+		pObj->m_Angle = round_to_int(m_Angle * 256.0f);
 		return;
 	}
 
@@ -105,7 +105,7 @@ void CDropBonuses::Snap(int SnappingClient)
 	if(!pP)
 		return;
 
-	pP->m_X = (int)m_Pos.x;
-	pP->m_Y = (int)m_Pos.y;
+	pP->m_X = round_to_int(m_Pos.x);
+	pP->m_Y = round_to_int(m_Pos.y);
 	pP->m_Type = m_Type;
 }
