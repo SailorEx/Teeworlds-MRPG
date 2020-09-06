@@ -78,28 +78,28 @@ RawSource = '''
 '''
 
 Enums = [
-	Pickups,
-	Emotes,
-	Emoticons,
-	Votes,
-	ChatModes,
-	GameMsgIDs,
+    Pickups,
+    Emotes,
+    Emoticons,
+    Votes,
+    ChatModes,
+    GameMsgIDs,
 
     # mmotee
     Effects,
-	Equip,
-	MmoPickups,
+    Equip,
+    MmoPickups,
     AuthCodes,
-	MoodType,
-	WorldType,
-	TalkedStyles,
+    MoodType,
+    WorldType,
+    TalkedStyles,
 ]
 
 Flags = [
-	PlayerFlags,
-	GameFlags,
-	GameStateFlags,
-	CoreEventFlags,
+    PlayerFlags,
+    GameFlags,
+    GameStateFlags,
+    CoreEventFlags,
     RaceFlags,
 ]
 
@@ -183,7 +183,7 @@ Objects = [
 		NetIntRange("m_Direction", -1, 1),
 
 		NetIntRange("m_Jumped", 0, 3),
-		NetIntRange("m_HookedPlayer", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_HookedPlayer", -1, 'MAX_CLIENTS-1'),
 		NetIntRange("m_HookState", -1, 5),
 		NetTick("m_HookTick"),
 
