@@ -171,7 +171,7 @@ void CMenus::RenderSettingsMmoChangerGeneric(CUIRect MainView, CCSkinChanger::CT
 	s_ListBox.DoHeader(&MainView, aBuf, 20.0f, 2.0f);
 
 	const int Num = pEntities->Num();
-	s_ListBox.DoStart(MainView.w / (float)ItemsPerRow / Ratio, Num, ItemsPerRow, OldSelected);
+	s_ListBox.DoStart(MainView.w / (float)ItemsPerRow / Ratio, Num, 1, ItemsPerRow, OldSelected);
 
 	for (int i = 0; i < Num + 1; ++i) // first is default
 	{
@@ -224,31 +224,31 @@ void CMenus::RenderMmoSettingsTexture(CUIRect MainView, CUIRect Background)
 
 		TabBar.VSplitLeft(TabBar.w / 6, &Button, &TabBar);
 		static CButtonContainer s_ButtonGameSkins;
-		if (DoButton_MenuTab(&s_ButtonGameSkins, Localize("Gameskin"), TextureMenu == 0, &Button, 0))
+		if (DoButton_MenuTabTop(&s_ButtonGameSkins, Localize("Gameskin"), TextureMenu == 0, &Button, 1.0f, 1.0f, 0))
 			TextureMenu = 0;
 
 		TabBar.VSplitLeft(TabBar.w / 5, &Button, &TabBar);
 		static CButtonContainer s_ButtonEmoticons;
-		if (DoButton_MenuTab(&s_ButtonEmoticons, Localize("Emoticons"), TextureMenu == 1, &Button, 0))
+		if (DoButton_MenuTabTop(&s_ButtonEmoticons, Localize("Emoticons"), TextureMenu == 1, &Button, 1.0f, 1.0f, 0))
 			TextureMenu = 1;
 
 		TabBar.VSplitLeft(TabBar.w / 4, &Button, &TabBar);
 		static CButtonContainer s_ButtonCursors;
-		if (DoButton_MenuTab(&s_ButtonCursors, Localize("Cursor"), TextureMenu == 2, &Button, 0))
+		if (DoButton_MenuTabTop(&s_ButtonCursors, Localize("Cursor"), TextureMenu == 2, &Button, 1.0f, 1.0f, 0))
 			TextureMenu = 2;
 
 		TabBar.VSplitLeft(TabBar.w / 3, &Button, &TabBar);
 		static CButtonContainer s_ButtonParticles;
-		if (DoButton_MenuTab(&s_ButtonParticles, Localize("Particles"), TextureMenu == 3, &Button, 0))
+		if (DoButton_MenuTabTop(&s_ButtonParticles, Localize("Particles"), TextureMenu == 3, &Button, 1.0f, 1.0f, 0))
 			TextureMenu = 3;
 
 		TabBar.VSplitLeft(TabBar.w / 2, &Button, &TabBar);
 		static CButtonContainer s_ButtonEntities;
-		if (DoButton_MenuTab(&s_ButtonEntities, Localize("Entities"), TextureMenu == 4, &Button, 0))
+		if (DoButton_MenuTabTop(&s_ButtonEntities, Localize("Entities"), TextureMenu == 4, &Button, 1.0f, 1.0f, 0))
 			TextureMenu = 4;
 
 		static CButtonContainer s_ButtonFonts;
-		if (DoButton_MenuTab(&s_ButtonFonts, Localize("Fonts"), TextureMenu == 5, &TabBar, 0))
+		if (DoButton_MenuTabTop(&s_ButtonFonts, Localize("Fonts"), TextureMenu == 5, &TabBar, 1.0f, 1.0f, 0))
 			TextureMenu = 5;
 	}
 
@@ -351,7 +351,7 @@ void CMenus::RenderFontSelection(CUIRect MainView)
 
 	int OldSelectedFont = s_SelectedFont;
 	s_ListBox.DoHeader(&MainView, Localize("Fonts"), 20.0f, 2.0f);
-	s_ListBox.DoStart(20.0f, s_Fonts.size(), 1, s_SelectedFont);
+	s_ListBox.DoStart(20.0f, s_Fonts.size(), 1, 3, s_SelectedFont);
 	for (sorted_array<CFontFile>::range r = s_Fonts.all(); !r.empty(); r.pop_front())
 	{
 		CListboxItem Item = s_ListBox.DoNextItem(&r.front());

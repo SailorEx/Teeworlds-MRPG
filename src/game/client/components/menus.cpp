@@ -42,6 +42,7 @@ CMenus* CMenus::CUIElementBase::m_pMenus = 0;
 CRenderTools* CMenus::CUIElementBase::m_pRenderTools = 0;
 CUI* CMenus::CUIElementBase::m_pUI = 0;
 IInput* CMenus::CUIElementBase::m_pInput = 0;
+IClient* CMenus::CUIElementBase::m_pClient = 0;
 
 CMenus::CMenus()
 {
@@ -69,7 +70,6 @@ CMenus::CMenus()
 	m_MenuActiveID = EMenuState::ESCSTATE;
 	m_SeekBarActivatedTime = 0;
 	m_SeekBarActive = true;
-	m_UseMouseButtons = true;
 	m_SkinModified = false;
 	m_KeyReaderWasActive = false;
 	m_KeyReaderIsActive = false;
@@ -102,48 +102,41 @@ CMenus::CMenus()
 	m_ActiveEditbox = false;
 }
 
-float CMenus::ButtonFade(CButtonContainer *pBC, float Seconds, int Checked)
+float CMenus::CButtonContainer::GetFade(bool Checked, float Seconds)
 {
-	if(UI()->HotItem() == pBC->GetID() || Checked)
+	if (m_pUI->HotItem() == GetID() || Checked)
 	{
-		pBC->m_FadeStartTime = Client()->LocalTime();
-		return Seconds;
+		m_FadeStartTime = m_pClient->LocalTime();
+		return 1.0f;
 	}
 
-	return max(0.0f, pBC->m_FadeStartTime -  Client()->LocalTime() + Seconds);
+	return max(0.0f, m_FadeStartTime - m_pClient->LocalTime() + Seconds) / Seconds;
 }
 
-int CMenus::DoIcon(int ImageId, int SpriteId, const CUIRect *pRect)
+void CMenus::DoIcon(int ImageId, int SpriteId, const CUIRect* pRect, const vec4* pColor)
 {
 	Graphics()->TextureSet(g_pData->m_aImages[ImageId].m_Id);
 
 	Graphics()->QuadsBegin();
 	RenderTools()->SelectSprite(SpriteId);
-	IGraphics::CQuadItem QuadItem(pRect->x, pRect->y, pRect->w, pRect->h);
-	Graphics()->QuadsDrawTL(&QuadItem, 1);
-	Graphics()->QuadsEnd();
-
-	return 0;
-}
-
-void CMenus::DoIconColor(int ImageId, int SpriteId, const CUIRect* pRect, const vec4& Color)
-{
-	Graphics()->TextureSet(g_pData->m_aImages[ImageId].m_Id);
-
-	Graphics()->QuadsBegin();
-	RenderTools()->SelectSprite(SpriteId);
-	Graphics()->SetColor(Color.r*Color.a, Color.g*Color.a, Color.b*Color.a, Color.a);
+	if (pColor)
+	{
+		Graphics()->SetColor(pColor->r * pColor->a, pColor->g * pColor->a, pColor->b * pColor->a, pColor->a);
+	}
 	IGraphics::CQuadItem QuadItem(pRect->x, pRect->y, pRect->w, pRect->h);
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->QuadsEnd();
 }
 
-int CMenus::DoButton_Toggle(const void *pID, int Checked, const CUIRect *pRect, bool Active)
+bool CMenus::DoButton_Toggle(const void* pID, bool Checked, const CUIRect* pRect, bool Active)
 {
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GUIBUTTONS].m_Id);
 	Graphics()->QuadsBegin();
 	if(!Active)
+	{
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 0.5f);
+	}
+	RenderTools()->SelectSprite(Checked ? SPRITE_GUIBUTTON_ON : SPRITE_GUIBUTTON_OFF);
 	RenderTools()->SelectSprite(Checked?SPRITE_GUIBUTTON_ON:SPRITE_GUIBUTTON_OFF);
 	IGraphics::CQuadItem QuadItem(pRect->x, pRect->y, pRect->w, pRect->h);
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
@@ -158,15 +151,12 @@ int CMenus::DoButton_Toggle(const void *pID, int Checked, const CUIRect *pRect, 
 	return Active && UI()->DoButtonLogic(pID, pRect);
 }
 
-int CMenus::DoButton_Menu(CButtonContainer *pBC, const char *pText, int Checked, const CUIRect *pRect, const char *pImageName, int Corners, float r, float FontFactor, vec4 ColorHot, bool TextFade)
+bool CMenus::DoButton_Menu(CButtonContainer* pBC, const char* pText, bool Checked, const CUIRect* pRect, const char* pImageName, int Corners, float Rounding, float FontFactor, vec4 ColorHot, bool TextFade)
 {
-	float Seconds = 0.6f; //  0.6 seconds for fade
-	float Fade = ButtonFade(pBC, Seconds, Checked);
-	float FadeVal = Fade/Seconds;
-	CUIRect Text = *pRect;
+	const float FadeVal = pBC->GetFade(Checked);
 
-	vec4 Color = mix(vec4(0.0f, 0.0f, 0.0f, 0.25f), ColorHot, FadeVal);
-	RenderTools()->DrawUIRect(pRect, Color, Corners, r);
+	CUIRect Text = *pRect;
+	RenderTools()->DrawUIRect(pRect, mix(vec4(0.0f, 0.0f, 0.0f, 0.25f), ColorHot, FadeVal), Corners, Rounding);
 
 	if(pImageName)
 	{
@@ -185,7 +175,7 @@ int CMenus::DoButton_Menu(CButtonContainer *pBC, const char *pText, int Checked,
 			Graphics()->QuadsDrawTL(&QuadItem, 1);
 			Graphics()->QuadsEnd();
 
-			if(Fade > 0.0f)
+			if(FadeVal > 0.0f)
 			{
 				Graphics()->TextureSet(pImage->m_OrgTexture);
 				Graphics()->WrapClamp();
@@ -198,7 +188,7 @@ int CMenus::DoButton_Menu(CButtonContainer *pBC, const char *pText, int Checked,
 		}
 	}
 
-	Text.HMargin(pRect->h>=20.0f?2.0f:1.0f, &Text);
+	Text.HMargin(pRect->h >= 20.0f ? 2.0f : 1.0f, &Text);
 	Text.HMargin((Text.h*FontFactor)/2.0f, &Text);
 	if(TextFade)
 	{
@@ -225,66 +215,34 @@ int CMenus::DoButton_Menu(CButtonContainer *pBC, const char *pText, int Checked,
 	return Logic;
 }
 
-void CMenus::DoButton_KeySelect(CButtonContainer *pBC, const char *pText, int Checked, const CUIRect *pRect)
+void CMenus::DoButton_KeySelect(CButtonContainer* pBC, const char* pText, const CUIRect* pRect)
 {
-	float Seconds = 0.6f; //  0.6 seconds for fade
-	float Fade = ButtonFade(pBC, Seconds, Checked);
-	float FadeVal = Fade/Seconds;
+	const float FadeVal = pBC->GetFade();
 
 	RenderTools()->DrawUIRect(pRect, vec4(0.0f+FadeVal, 0.0f+FadeVal, 0.0f+FadeVal, 0.25f+FadeVal*0.5f), CUI::CORNER_ALL, 5.0f);
-	CUIRect Temp;
-	pRect->HMargin(1.0f, &Temp);
+	
+	CUIRect Label;
+	pRect->HMargin(1.0f, &Label);
 	TextRender()->TextColor(1.0f-FadeVal, 1.0f-FadeVal, 1.0f-FadeVal, 1.0f);
 	TextRender()->TextOutlineColor(0.0f+FadeVal, 0.0f+FadeVal, 0.0f+FadeVal, 0.25f);
-	UI()->DoLabel(&Temp, pText, Temp.h*ms_FontmodHeight, CUI::ALIGN_CENTER);
+	UI()->DoLabel(&Label, pText, Label.h * ms_FontmodHeight, CUI::ALIGN_CENTER);
 	TextRender()->TextColor(CUI::ms_DefaultTextColor);
 	TextRender()->TextOutlineColor(CUI::ms_DefaultTextOutlineColor);
 }
 
-int CMenus::DoButton_MenuTab(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Corners)
+bool CMenus::DoButton_MenuTabTop(CButtonContainer* pBC, const char* pText, bool Checked, const CUIRect* pRect, float Alpha, float FontAlpha, int Corners, float Rounding, float FontFactor)
 {
-	if(Checked)
-		RenderTools()->DrawUIRect(pRect, vec4(1.0f, 1.0f, 1.0f, 0.25f), Corners, 10.0f);
-	else
-	{
-		RenderTools()->DrawUIRect(pRect, vec4(0.0f, 0.0f, 0.0f, 0.25f), Corners, 10.0f);
-		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.7f);
-	}
+	const float ActualAlpha = UI()->MouseHovered(pRect) ? 1.0f : Alpha;
+	const float FadeVal = pBC->GetFade(Checked) * FontAlpha;
 
-	CUIRect Temp;
-	pRect->HMargin(pRect->h>=20.0f?2.0f:1.0f, &Temp);
-	UI()->DoLabel(&Temp, pText, Temp.h*ms_FontmodHeight, CUI::ALIGN_CENTER);
+	RenderTools()->DrawUIRect(pRect, vec4(0.0f + FadeVal, 0.0f + FadeVal, 0.0f + FadeVal, g_Config.m_ClMenuAlpha / 100.0f * ActualAlpha + FadeVal * 0.5f), Corners, Rounding);
 
-	TextRender()->TextColor(CUI::ms_DefaultTextColor);
-
-	// UI sounds
-	const void* pLastActiveItem = UI()->GetActiveItem();
-	int Logic = UI()->DoButtonLogic(pID, pRect);
-	if(g_Config.m_SndEnableUI)
-	{
-		if(g_Config.m_SndEnableUIHover && UI()->NextHotItem() == pID && UI()->NextHotItem() != UI()->HotItem())
-			m_pClient->m_pSounds->Play(CSounds::CHN_GUI, SOUND_BUTTON_HOVER, 1);
-		if(UI()->GetActiveItem() == pID && pLastActiveItem != pID)
-			m_pClient->m_pSounds->Play(CSounds::CHN_GUI, SOUND_BUTTON_CLICK, 0);
-	}
-	return Logic;
-}
-
-int CMenus::DoButton_MenuTabTop(CButtonContainer *pBC, const char *pText, int Checked, const CUIRect *pRect, float Alpha, float FontAlpha, int Corners, float r, float FontFactor)
-{
-	if(UI()->MouseInside(pRect))
-		Alpha = 1.0f;
-	float Seconds = 0.6f; //  0.6 seconds for fade
-	float Fade = ButtonFade(pBC, Seconds, Checked);
-	float FadeVal = (Fade/Seconds)*FontAlpha;
-
-	RenderTools()->DrawUIRect(pRect, vec4(0.0f+FadeVal, 0.0f+FadeVal, 0.0f+FadeVal, g_Config.m_ClMenuAlpha/100.0f*Alpha+FadeVal*0.5f), Corners, r);
-	CUIRect Temp;
-	pRect->HMargin(pRect->h>=20.0f?2.0f:1.0f, &Temp);
-	Temp.HMargin((Temp.h*FontFactor)/2.0f, &Temp);
+	CUIRect Label;
+	pRect->HMargin(pRect->h >= 20.0f ? 2.0f : 1.0f, &Label);
+	Label.HMargin((Label.h * FontFactor) / 2.0f, &Label);
 	TextRender()->TextColor(1.0f-FadeVal, 1.0f-FadeVal, 1.0f-FadeVal, FontAlpha);
 	TextRender()->TextOutlineColor(0.0f+FadeVal, 0.0f+FadeVal, 0.0f+FadeVal, 0.25f*FontAlpha);
-	UI()->DoLabel(&Temp, pText, Temp.h*ms_FontmodHeight, CUI::ALIGN_CENTER);
+	UI()->DoLabel(&Label, pText, Label.h * ms_FontmodHeight, CUI::ALIGN_CENTER);
 	TextRender()->TextColor(CUI::ms_DefaultTextColor);
 	TextRender()->TextOutlineColor(CUI::ms_DefaultTextOutlineColor);
 
@@ -301,7 +259,7 @@ int CMenus::DoButton_MenuTabTop(CButtonContainer *pBC, const char *pText, int Ch
 	return Logic;
 }
 
-int CMenus::DoButton_GridHeader(const void *pID, const char *pText, int Checked, CUI::EAlignment Align, const CUIRect *pRect)
+bool CMenus::DoButton_GridHeader(const void* pID, const char* pText, bool Checked, CUI::EAlignment Align, const CUIRect* pRect)
 //void CMenus::ui_draw_grid_header(const void *id, const char *text, int checked, const CUIRect *r, const void *extra)
 {
 	if(Checked)
@@ -317,7 +275,7 @@ int CMenus::DoButton_GridHeader(const void *pID, const char *pText, int Checked,
 
 	CUIRect Label;
 	pRect->VMargin(2.0f, &Label);
-	Label.y+=2.0f;
+	Label.y += 2.0f;
 	UI()->DoLabel(&Label, pText, pRect->h*ms_FontmodHeight*0.8f, Align);
 
 	if(Checked)
@@ -329,18 +287,23 @@ int CMenus::DoButton_GridHeader(const void *pID, const char *pText, int Checked,
 	return UI()->DoButtonLogic(pID, pRect);
 }
 
-int CMenus::DoButton_CheckBox_Common(const void *pID, const char *pText, const char *pBoxText, const CUIRect *pRect, bool Checked, bool Locked)
+bool CMenus::DoButton_CheckBox(const void* pID, const char* pText, bool Checked, const CUIRect* pRect, bool Locked)
 {
+	if (Locked)
+	{
+		TextRender()->TextColor(0.5f, 0.5f, 0.5f, 1.0f);
+	}
+
 	RenderTools()->DrawUIRect(pRect, vec4(0.0f, 0.0f, 0.0f, 0.25f), CUI::CORNER_ALL, 5.0f);
 
-	CUIRect c = *pRect;
-	CUIRect t = *pRect;
-	c.w = c.h;
-	t.x += c.w;
-	t.w -= c.w;
-	t.VSplitLeft(5.0f, 0, &t);
+	CUIRect Checkbox = *pRect;
+	CUIRect Label = *pRect;
+	Checkbox.w = Checkbox.h;
+	Label.x += Checkbox.w;
+	Label.w -= Checkbox.w;
+	Label.VSplitLeft(5.0f, 0, &Label);
 
-	c.Margin(2.0f, &c);
+	Checkbox.Margin(2.0f, &Checkbox);
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_MENUICONS].m_Id);
 	Graphics()->QuadsBegin();
 	if(Locked)
@@ -351,61 +314,54 @@ int CMenus::DoButton_CheckBox_Common(const void *pID, const char *pText, const c
 	if(UI()->HotItem() == pID)
 	{
 		RenderTools()->SelectSprite(SPRITE_MENU_CHECKBOX_HOVER);
-		IGraphics::CQuadItem QuadItem(c.x, c.y, c.w, c.h);
+		IGraphics::CQuadItem QuadItem(Checkbox.x, Checkbox.y, Checkbox.w, Checkbox.h);
 		Graphics()->QuadsDrawTL(&QuadItem, 1);
 	}
 	RenderTools()->SelectSprite(Checked ? SPRITE_MENU_CHECKBOX_ACTIVE : SPRITE_MENU_CHECKBOX_INACTIVE);
-	IGraphics::CQuadItem QuadItem(c.x, c.y, c.w, c.h);
+	IGraphics::CQuadItem QuadItem(Checkbox.x, Checkbox.y, Checkbox.w, Checkbox.h);
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->QuadsEnd();
 
-	t.y += (c.w / 2.0f) - (ms_FontmodHeight * (ms_FontmodHeight * 10.0f)); 
-	UI()->DoLabel(&c, pBoxText, pRect->h*ms_FontmodHeight*0.6f, CUI::ALIGN_CENTER);
-	UI()->DoLabel(&t, pText, pRect->h*ms_FontmodHeight*0.8f, CUI::ALIGN_LEFT);
+	Label.y += 1.0f; // lame fix
+	UI()->DoLabel(&Label, pText, pRect->h * ms_FontmodHeight * 0.8f, CUI::ALIGN_LEFT);
+
+	if(Locked)
+	{
+		TextRender()->TextColor(CUI::ms_DefaultTextColor);
+		return false;
+	}
 
 	// UI sounds
 	const void* pLastActiveItem = UI()->GetActiveItem();
 	int Logic = UI()->DoButtonLogic(pID, pRect);
-	if(g_Config.m_SndEnableUI)
+	if (g_Config.m_SndEnableUI)
 	{
-		if(UI()->GetActiveItem() == pID && pLastActiveItem != pID)
+		if (UI()->GetActiveItem() == pID && pLastActiveItem != pID)
 			m_pClient->m_pSounds->Play(CSounds::CHN_GUI, SOUND_BUTTON_CLICK, 0);
 	}
 	return Logic;
 }
 
-int CMenus::DoButton_CheckBox(const void *pID, const char *pText, int Checked, const CUIRect *pRect, bool Locked)
+bool CMenus::DoButton_SpriteID(CButtonContainer* pBC, int ImageID, int SpriteID, bool Checked, const CUIRect* pRect, int Corners, float Rounding, bool Fade)
 {
-	if(Locked)
-	{
-		TextRender()->TextColor(0.5f, 0.5f, 0.5f, 1.0f);
-		DoButton_CheckBox_Common(pID, pText, "", pRect, Checked, Locked);
-		TextRender()->TextColor(CUI::ms_DefaultTextColor);
-		return false;
-	}
-	return DoButton_CheckBox_Common(pID, pText, "", pRect, Checked, Locked);
-}
-
-int CMenus::DoButton_CheckBox_Number(const void* pID, const char* pText, int SelectedNumber, const CUIRect* pRect)
-{
-	char aBuf[16];
-	str_format(aBuf, sizeof(aBuf), "%d", SelectedNumber);
-	return DoButton_CheckBox_Common(pID, pText, aBuf, pRect);
-}
-
-int CMenus::DoButton_SpriteID(CButtonContainer *pBC, int ImageID, int SpriteID, bool Checked, const CUIRect *pRect, int Corners, float r, bool Fade)
-{
-	float Seconds = 0.6f; //  0.6 seconds for fade
-	float FadeVal = Fade ? ButtonFade(pBC, Seconds, Checked) / Seconds : 0.0f;
-
-	RenderTools()->DrawUIRect(pRect, vec4(0.0f + FadeVal, 0.0f + FadeVal, 0.0f + FadeVal, 0.25f + FadeVal * 0.5f), Corners, r);
+	const float FadeVal = Fade ? pBC->GetFade(Checked) : 0.0f;
 
 	CUIRect Icon = *pRect;
-	if(Icon.w > Icon.h)
-		Icon.VMargin((Icon.w - Icon.h) / 2, &Icon);
-	else if(Icon.w < Icon.h)
-		Icon.HMargin((Icon.h - Icon.w) / 2, &Icon);
-	Icon.Margin(2.0f, &Icon);
+
+	if (FadeVal > 0.0f || !pBC->IsCleanBackground())
+	{
+		RenderTools()->DrawUIRect(pRect, vec4(0.0f + FadeVal, 0.0f + FadeVal, 0.0f + FadeVal, 0.25f + FadeVal * 0.5f), Corners, Rounding);
+	}
+
+	if (!pBC->IsCleanBackground())
+	{
+		if (Icon.w > Icon.h)
+			Icon.VMargin((Icon.w - Icon.h) / 2, &Icon);
+		else if (Icon.w < Icon.h)
+			Icon.HMargin((Icon.h - Icon.w) / 2, &Icon);
+		Icon.Margin(2.0f, &Icon);
+	}
+
 	Graphics()->TextureSet(g_pData->m_aImages[ImageID].m_Id);
 	Graphics()->QuadsBegin();
 	Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -417,58 +373,9 @@ int CMenus::DoButton_SpriteID(CButtonContainer *pBC, int ImageID, int SpriteID, 
 	return UI()->DoButtonLogic(pBC->GetID(), pRect);
 }
 
-int CMenus::DoButton_SpriteClean(int ImageID, int SpriteID, const CUIRect *pRect)
-{
-	int Inside = UI()->MouseInside(pRect);
-
-	Graphics()->TextureSet(g_pData->m_aImages[ImageID].m_Id);
-	Graphics()->QuadsBegin();
-	Graphics()->SetColor(1.0f, 1.0f, 1.0f, Inside ? 1.0f : 0.6f);
-	RenderTools()->SelectSprite(SpriteID);
-	IGraphics::CQuadItem QuadItem(pRect->x, pRect->y, pRect->w, pRect->h);
-	Graphics()->QuadsDrawTL(&QuadItem, 1);
-	Graphics()->QuadsEnd();
-
-	int ReturnValue = 0;
-	if(Inside && Input()->KeyPress(KEY_MOUSE_1))
-		ReturnValue = 1;
-
-	return ReturnValue;
-}
-
-int CMenus::DoButton_SpriteCleanID(const void *pID, int ImageID, int SpriteID, const CUIRect *pRect, bool Blend)
-{
-	int Inside = UI()->MouseInside(pRect);
-
-	Graphics()->TextureSet(g_pData->m_aImages[ImageID].m_Id);
-	Graphics()->QuadsBegin();
-	Graphics()->SetColor(1.0f, 1.0f, 1.0f, !Blend || Inside ? 1.0f : 0.6f);
-	RenderTools()->SelectSprite(SpriteID);
-	IGraphics::CQuadItem QuadItem(pRect->x, pRect->y, pRect->w, pRect->h);
-	Graphics()->QuadsDrawTL(&QuadItem, 1);
-	Graphics()->QuadsEnd();
-
-	return UI()->DoButtonLogic(pID, pRect);
-}
-
-int CMenus::DoButton_MouseOver(int ImageID, int SpriteID, const CUIRect *pRect)
-{
-	int Inside = UI()->MouseInside(pRect);
-
-	Graphics()->TextureSet(g_pData->m_aImages[ImageID].m_Id);
-	Graphics()->QuadsBegin();
-	Graphics()->SetColor(1.0f, 1.0f, 1.0f, Inside ? 1.0f : 0.6f);
-	RenderTools()->SelectSprite(SpriteID);
-	IGraphics::CQuadItem QuadItem(pRect->x, pRect->y, pRect->w, pRect->h);
-	Graphics()->QuadsDrawTL(&QuadItem, 1);
-	Graphics()->QuadsEnd();
-
-	return Inside;
-}
-
 bool CMenus::DoEditBox(void* pID, const CUIRect* pRect, char* pStr, unsigned StrSize, float FontSize, float* pOffset, bool Hidden, int Corners)
 {
-	int Inside = UI()->MouseInside(pRect);
+	int Inside = UI()->MouseHovered(pRect);
 	bool Changed = false;
 	bool UpdateOffset = false;
 	static int s_AtIndex = 0;
@@ -573,8 +480,7 @@ bool CMenus::DoEditBox(void* pID, const CUIRect* pRect, char* pStr, unsigned Str
 		Color = vec4(0.0f, 0.0f, 0.0f, 0.25f);
 
 	RenderTools()->DrawUIRect(&Textbox, Color, Corners, 5.0f);
-	Textbox.VMargin(2.0f, &Textbox);
-	Textbox.HMargin(2.0f, &Textbox);
+	Textbox.Margin(2.0f, &Textbox);
 
 	const char *pDisplayStr = pStr;
 	char aStars[128];
@@ -625,13 +531,14 @@ bool CMenus::DoEditBox(void* pID, const CUIRect* pRect, char* pStr, unsigned Str
 		// set cursor active
 		m_CursorActive = true;
 		
-		float w = TextRender()->TextWidth(0, FontSize, pDisplayStr, s_AtIndex, -1.0f);
-		Textbox = *pRect;
-		Textbox.VSplitLeft(2.0f, 0, &Textbox);
-		Textbox.x += (w-*pOffset-TextRender()->TextWidth(0, FontSize, "|", -1, -1.0f)/2);
-
 		if((2*time_get()/time_freq()) % 2)	// make it blink
+		{
+			float TextWidth = TextRender()->TextWidth(0, FontSize, pDisplayStr, s_AtIndex, -1.0f);
+			Textbox = *pRect;
+			Textbox.VSplitLeft(2.0f, 0, &Textbox);
+			Textbox.x += TextWidth - *pOffset - TextRender()->TextWidth(0, FontSize, "|", -1, -1.0f) / 2;
 			UI()->DoLabel(&Textbox, "|", FontSize, CUI::ALIGN_LEFT);
+		}
 	}
 	UI()->ClipDisable();
 
@@ -698,7 +605,7 @@ void CMenus::DoScrollbarOption(void* pID, int* pOption, const CUIRect* pRect, co
 void CMenus::DoScrollbarOptionLabeled(void* pID, int* pOption, const CUIRect* pRect, const char* pStr, const char* aLabels[], int Num, IScrollbarScale* pScale)
 {
 	int Value = clamp(*pOption, 0, Num - 1);
-	int Max = Num - 1;
+	const int Max = Num - 1;
 
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "%s: %s", pStr, aLabels[Value]);
@@ -720,18 +627,15 @@ void CMenus::DoScrollbarOptionLabeled(void* pID, int* pOption, const CUIRect* pR
 	*pOption = clamp(Value, 0, Max);
 }
 
-float CMenus::DoDropdownMenu(void *pID, const CUIRect *pRect, const char *pStr, float HeaderHeight, FDropdownCallback pfnCallback)
+float CMenus::DoIndependentDropdownMenu(void* pID, const CUIRect* pRect, const char* pStr, float HeaderHeight, FDropdownCallback pfnCallback, bool* pActive)
 {
 	CUIRect View = *pRect;
 	CUIRect Header, Label;
 
-	bool Active = pID == m_pActiveDropdown;
-	int Corners = Active ? CUI::CORNER_T : CUI::CORNER_ALL;
-
 	View.HSplitTop(HeaderHeight, &Header, &View);
 
 	// background
-	RenderTools()->DrawUIRect(&Header, vec4(0.0f, 0.0f, 0.0f, 0.25f), Corners, 5.0f);
+	RenderTools()->DrawUIRect(&Header, vec4(0.0f, 0.0f, 0.0f, 0.25f), *pActive ? CUI::CORNER_T : CUI::CORNER_ALL, 5.0f);
 
 	// render icon
 	CUIRect Button;
@@ -739,66 +643,11 @@ float CMenus::DoDropdownMenu(void *pID, const CUIRect *pRect, const char *pStr, 
 	Button.Margin(2.0f, &Button);
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_MENUICONS].m_Id);
 	Graphics()->QuadsBegin();
-	if(UI()->MouseInside(&Header))
+	if(UI()->MouseHovered(&Header))
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 	else
 		Graphics()->SetColor(0.6f, 0.6f, 0.6f, 1.0f);
-	if(Active)
-		RenderTools()->SelectSprite(SPRITE_MENU_EXPANDED);
-	else
-		RenderTools()->SelectSprite(SPRITE_MENU_COLLAPSED);
-	IGraphics::CQuadItem QuadItem(Button.x, Button.y, Button.w, Button.h);
-	Graphics()->QuadsDrawTL(&QuadItem, 1);
-	Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
-	Graphics()->QuadsEnd();
-
-	// label
-	Label = Header;
-	Label.y += 2.0f;
-	UI()->DoLabel(&Label, pStr, Header.h*ms_FontmodHeight*0.8f, CUI::ALIGN_CENTER);
-
-	if(UI()->DoButtonLogic(pID, &Header))
-	{
-		if(Active)
-			m_pActiveDropdown = 0;
-		else
-			m_pActiveDropdown = (int*)pID;
-	}
-
-	// render content of expanded menu
-	if(Active)
-		return HeaderHeight + (this->*pfnCallback)(View);
-
-	return HeaderHeight;
-}
-
-float CMenus::DoIndependentDropdownMenu(void *pID, const CUIRect *pRect, const char *pStr, float HeaderHeight, FDropdownCallback pfnCallback, bool* pActive)
-{
-	CUIRect View = *pRect;
-	CUIRect Header, Label;
-
-	bool Active = *pActive;
-	int Corners = Active ? CUI::CORNER_T : CUI::CORNER_ALL;
-
-	View.HSplitTop(HeaderHeight, &Header, &View);
-
-	// background
-	RenderTools()->DrawUIRect(&Header, vec4(0.0f, 0.0f, 0.0f, 0.25f), Corners, 5.0f);
-
-	// render icon
-	CUIRect Button;
-	Header.VSplitLeft(Header.h, &Button, 0);
-	Button.Margin(2.0f, &Button);
-	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_MENUICONS].m_Id);
-	Graphics()->QuadsBegin();
-	if(UI()->MouseInside(&Header))
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
-	else
-		Graphics()->SetColor(0.6f, 0.6f, 0.6f, 1.0f);
-	if(Active)
-		RenderTools()->SelectSprite(SPRITE_MENU_EXPANDED);
-	else
-		RenderTools()->SelectSprite(SPRITE_MENU_COLLAPSED);
+	RenderTools()->SelectSprite(*pActive ? SPRITE_MENU_EXPANDED : SPRITE_MENU_COLLAPSED);
 	IGraphics::CQuadItem QuadItem(Button.x, Button.y, Button.w, Button.h);
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -813,7 +662,7 @@ float CMenus::DoIndependentDropdownMenu(void *pID, const CUIRect *pRect, const c
 		*pActive ^= 1;
 
 	// render content of expanded menu
-	if(Active)
+	if (*pActive)
 		return HeaderHeight + (this->*pfnCallback)(View);
 
 	return HeaderHeight;
@@ -851,8 +700,8 @@ float CMenus::DoScrollbarV(const void *pID, const CUIRect *pRect, float Current)
 	// logic
 	float ReturnValue = Current;
 	static float s_OffsetY;
-	const bool InsideHandle = UI()->MouseInside(&Handle);
-	const bool InsideRail = UI()->MouseInside(&Rail);
+	const bool InsideHandle = UI()->MouseHovered(&Handle);
+	const bool InsideRail = UI()->MouseHovered(&Rail);
 	bool Grabbed = false; // whether to apply the offset
 
 	if(UI()->CheckActiveItem(pID))
@@ -920,8 +769,8 @@ float CMenus::DoScrollbarH(const void *pID, const CUIRect *pRect, float Current)
 	// logic
 	float ReturnValue = Current;
 	static float s_OffsetX;
-	const bool InsideHandle = UI()->MouseInside(&Handle);
-	const bool InsideRail = UI()->MouseInside(&Rail);
+	const bool InsideHandle = UI()->MouseHovered(&Handle);
+	const bool InsideRail = UI()->MouseHovered(&Rail);
 	bool Grabbed = false; // whether to apply the offset
 
 	if(UI()->CheckActiveItem(pID))
@@ -1005,7 +854,7 @@ int CMenus::DoKeyReader(CButtonContainer *pBC, const CUIRect *pRect, int Key, in
 	static const void *pGrabbedID = 0;
 	static bool MouseReleased = true;
 	static int ButtonUsed = 0;
-	int Inside = UI()->MouseInside(pRect) && UI()->MouseInsideClip();
+	const bool Hovered = UI()->MouseHovered(pRect);
 	int NewKey = Key;
 	*NewModifier = Modifier;
 
@@ -1030,7 +879,7 @@ int CMenus::DoKeyReader(CButtonContainer *pBC, const CUIRect *pRect, int Key, in
 
 		if(ButtonUsed == 1 && !UI()->MouseButton(1))
 		{
-			if(Inside)
+			if(Hovered)
 				NewKey = 0;
 			UI()->SetActiveItem(0);
 		}
@@ -1055,24 +904,24 @@ int CMenus::DoKeyReader(CButtonContainer *pBC, const CUIRect *pRect, int Key, in
 		}
 	}
 
-	if(Inside)
+	if(Hovered)
 		UI()->SetHotItem(pBC->GetID());
 
 	// draw
 	if(UI()->CheckActiveItem(pBC->GetID()) && ButtonUsed == 0)
 	{
-		DoButton_KeySelect(pBC, "???", 0, pRect);
+		DoButton_KeySelect(pBC, "???", pRect);
 		m_KeyReaderIsActive = true;
 	}
 	else
 	{
 		if(Key == 0)
-			DoButton_KeySelect(pBC, "", 0, pRect);
+			DoButton_KeySelect(pBC, "", pRect);
 		else
 		{
 			char aBuf[64];
 			str_format(aBuf, sizeof(aBuf), "%s%s", CBinds::GetModifierName(*NewModifier), Input()->KeyName(Key));
-			DoButton_KeySelect(pBC, aBuf, 0, pRect);
+			DoButton_KeySelect(pBC, aBuf, pRect);
 		}
 	}
 	return NewKey;
@@ -1318,9 +1167,7 @@ void CMenus::RenderMenubar(CUIRect Rect)
 			// gamer: do fading button with two icons
 			{
 				static CButtonContainer s_SwitchViewButton;
-				float Seconds = 0.6f; //  0.6 seconds for fade
-				float FadeVal = ButtonFade(&s_SwitchViewButton, Seconds, 0) / Seconds;
-
+				const float FadeVal = s_SwitchViewButton.GetFade();
 				RenderTools()->DrawUIRect(&Button, vec4(0.0f + FadeVal, 0.0f + FadeVal, 0.0f + FadeVal, 0.25f + FadeVal * 0.5f), CUI::CORNER_ALL, 5.0f);
 
 				for(int IconId = 0; IconId < 2; IconId++)
@@ -1725,16 +1572,14 @@ int CMenus::Render()
 				static CButtonContainer s_QuitButton;
 
 				// draw red-blending button
-				vec4 Color = mix(vec4(0.f, 0.f, 0.f, 0.25f), vec4(1.f/0xff*0xf9, 1.f/0xff*0x2b, 1.f/0xff*0x2b, 0.75f), ButtonFade(&s_QuitButton, 0.6f, 0)/0.6f);
+				vec4 Color = mix(vec4(0.f, 0.f, 0.f, 0.25f), vec4(1.f / 0xff * 0xf9, 1.f / 0xff * 0x2b, 1.f / 0xff * 0x2b, 0.75f), s_QuitButton.GetFade());
 				RenderTools()->DrawUIRect(&Button, Color, CUI::CORNER_BL, 5.0f);
 
 				// draw non-blending X
 				CUIRect XText = Button;
-				// XText.HMargin(Button.h>=20.0f?2.0f:1.0f, &XText);
 				
 				UI()->DoLabel(&XText, "\xE2\x9C\x95", XText.h*ms_FontmodHeight, CUI::ALIGN_CENTER);
 				if(UI()->DoButtonLogic(s_QuitButton.GetID(), &Button))
-				// if(DoButton_SpriteCleanID(&s_QuitButton, IMAGE_FRIENDICONS, SPRITE_FRIEND_X_A, &Button, false))
 					m_Popup = POPUP_QUIT;
 
 				// settings button
@@ -2500,8 +2345,8 @@ void CMenus::OnRender()
 	// render debug information
 	if(g_Config.m_Debug)
 	{
-		CUIRect Screen = *UI()->Screen();
-		Graphics()->MapScreen(Screen.x, Screen.y, Screen.w, Screen.h);
+		const CUIRect* pScreen = UI()->Screen();
+		Graphics()->MapScreen(pScreen->x, pScreen->y, pScreen->w, pScreen->h);
 
 		char aBuf[64];
 		str_format(aBuf, sizeof(aBuf), "%p %p %p", UI()->HotItem(), UI()->GetActiveItem(), UI()->LastActiveItem());
@@ -2529,25 +2374,17 @@ bool CMenus::CheckHotKey(int Key) const
 
 void CMenus::RenderCursor(int ImageID, vec4 Color)
 {
-	CUIRect* pScreen = UI()->Screen();
-	float mx = (m_MousePos.x / (float)Graphics()->ScreenWidth()) * pScreen->w;
-	float my = (m_MousePos.y / (float)Graphics()->ScreenHeight()) * pScreen->h;
-
-	int Buttons = 0;
-	if(m_UseMouseButtons)
-	{
-		if(Input()->KeyIsPressed(KEY_MOUSE_1)) Buttons |= 1;
-		if(Input()->KeyIsPressed(KEY_MOUSE_2)) Buttons |= 2;
-		if(Input()->KeyIsPressed(KEY_MOUSE_3)) Buttons |= 4;
-	}
-	UI()->Update(mx, my, mx * 3.0f, my * 3.0f, Buttons);
+	const CUIRect* pScreen = UI()->Screen();
+	float MouseX = (m_MousePos.x / (float)Graphics()->ScreenWidth()) * pScreen->w;
+	float MouseY = (m_MousePos.y / (float)Graphics()->ScreenHeight()) * pScreen->h;
+	UI()->Update(MouseX, MouseY, MouseX * 3.0f, MouseY * 3.0f);
 
 	// render cursor
 	Graphics()->TextureSet(g_pData->m_aImages[ImageID].m_Id);
 	Graphics()->WrapClamp();
 	Graphics()->QuadsBegin();
 	Graphics()->SetColor(Color.r, Color.g, Color.b, Color.a);
-	IGraphics::CQuadItem QuadItem(mx, my, 24, 24);
+	IGraphics::CQuadItem QuadItem(MouseX, MouseY, 24, 24);
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->QuadsEnd();
 	Graphics()->WrapNormal();
@@ -2560,8 +2397,8 @@ bool CMenus::IsBackgroundNeeded() const
 
 void CMenus::RenderBackground(float Time)
 {
-	float ScreenWidth = 300 * Graphics()->ScreenAspect();
 	float ScreenHeight = 300;
+	float ScreenWidth = ScreenHeight * Graphics()->ScreenAspect();
 	Graphics()->MapScreen(0, 0, ScreenWidth, ScreenHeight);
 
 	// render the tiles
