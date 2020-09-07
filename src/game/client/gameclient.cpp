@@ -1826,14 +1826,7 @@ bool CGameClient::ShouldUsePredicted()
 	// - When we are spectating
 	return
 		Client()->State() != IClient::STATE_DEMOPLAYBACK &&
-		!(
-			m_Snap.m_pGameData &&
-			m_Snap.m_pGameData->m_GameStateFlags & (
-				GAMESTATEFLAG_PAUSED |
-				GAMESTATEFLAG_ROUNDOVER |
-				GAMESTATEFLAG_GAMEOVER
-				)
-			) &&
+		!(IsWorldPaused()) &&
 		!(m_Snap.m_SpecInfo.m_Active);
 }
 
