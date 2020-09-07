@@ -171,7 +171,7 @@ void CMenus::RenderSettingsMmoChangerGeneric(CUIRect MainView, CCSkinChanger::CT
 	s_ListBox.DoHeader(&MainView, aBuf, 20.0f, 2.0f);
 
 	const int Num = pEntities->Num();
-	s_ListBox.DoStart(MainView.w / (float)ItemsPerRow / Ratio, Num, 1, ItemsPerRow, OldSelected);
+	s_ListBox.DoStart(MainView.w / (float)ItemsPerRow / Ratio, Num, ItemsPerRow, 1, OldSelected);
 
 	for (int i = 0; i < Num + 1; ++i) // first is default
 	{
