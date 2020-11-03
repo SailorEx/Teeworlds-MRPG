@@ -1,4 +1,4 @@
-add_library(sleepy-discord
+add_library(sleepy-discord SHARED
 	asignments_client.cpp
 	asio_udp.cpp
 	attachment.cpp
@@ -17,7 +17,7 @@ add_library(sleepy-discord
 	sd_error.cpp
 	server.cpp
 	user.cpp
-	uwebsockets_websocket.cpp
+	# uwebsockets_websocket.cpp
 	voice.cpp
 	voice_connection.cpp
 	webhook.cpp
@@ -42,7 +42,7 @@ if (CXX_STANDARD LESS 14 OR NOT CXX_STANDARD)
 endif()
 target_compile_definitions(sleepy-discord PUBLIC SLEEPY_DISCORD_CMAKE)
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if (MSVC)
 	target_compile_options(sleepy-discord PUBLIC -W3)
 else()
 	target_compile_options(sleepy-discord PUBLIC -Wall)
@@ -140,9 +140,12 @@ endif()
 
 if(NOT Git_FOUND)
 	target_compile_definitions(sleepy-discord PRIVATE NONEXISTANT_GIT_INFO)
-
 endif()
 
 if(ENABLE_VOICE)
 	target_compile_definitions(sleepy-discord PUBLIC SLEEPY_VOICE_ENABLED)
 endif()
+
+install(TARGETS sleepy-discord
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

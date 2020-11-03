@@ -181,8 +181,6 @@ function GenerateWindowsSettings(settings, conf, target_arch, compiler)
 			print("Need CL compiler use Visual Studio '")
 			os.exit(1)
 		-- end
-
-
 	end
 
 	local icons = SharedIcons(compiler)

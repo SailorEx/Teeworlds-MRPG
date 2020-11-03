@@ -98,8 +98,15 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 
 set(SERVER_EXECUTABLE mmoteeworlds_srv CACHE STRING "Name of the built server executable")
 set(CLIENT_EXECUTABLE mmoteeworlds CACHE STRING "Name of the build client executable")
-set(SERVER_COMPILE ON)
-set(CLIENT_COMPILE ON)
+option(SERVER_COMPILE "Compiles Server" ON)
+option(CLIENT_COMPILE "Compiles Client" ON)
+
+if(SERVER_COMPILE)
+  set(DISCORD_COMPILE ON)
+else()
+  set(DISCORD_COMPILE OFF)
+endif()
+
 
 ########################################################################
 # Download dependencies
@@ -197,6 +204,10 @@ if(NOT MSVC)
   add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wrestrict)
   # TODO: Enable for C++ code except gtest
   #add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN "-Wuseless-cast")
+
+  if(DISCORD_COMPILE)
+    add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wno-unused-command-line-argument)
+  endif()
 endif()
 
 if(NOT MSVC)
@@ -332,7 +343,7 @@ endif()
 ########################################################################
 # (DEPENDENCIES SUB) LIBRARIES AND INCLUDES FOR CLIENT/SERVER AND COMPONENTS
 ########################################################################
-    
+
 # clients lib
 set(CLIENT_LIBRARIES
   ${CURL_LIBRARIES} 
@@ -359,6 +370,16 @@ set(SERVER_LIBRARIES
   ${ICU_LIBRARIES}
 )
 
+if(DISCORD_COMPILE)
+  set(ONLY_SLEEPY_DISCORD OFF)
+  add_subdirectory(src/teeother/sleepy_discord)
+  set(SERVER_LIBRARIES 
+    ${SERVER_LIBRARIES} 
+    ${CURL_LIBRARIES}
+    sleepy-discord
+  )
+endif()
+
 # server includes
 if(NOT(Boost_INCLUDES_DIRS))
   set(Boost_INCLUDE_DIRS "other/boost/include")
@@ -367,9 +388,22 @@ endif()
 set(SERVER_INCLUDES_DIRS
   ${Boost_INCLUDE_DIRS} 
   ${ICU_INCLUDE_DIRS}
-  ${MYSQL_INCLUDE_DIRS})
+  ${MYSQL_INCLUDE_DIRS}
+)
 
-message(STATUS "******** Mmo ( Teeworlds) ********")
+if(DISCORD_COMPILE)
+  if(NOT(CPR_INCLUDE_DIRS))
+    set(CPR_INCLUDE_DIRS "discord_deps/cpr/include")
+  endif()
+
+  set(SERVER_INCLUDES_DIRS
+    ${SERVER_INCLUDES_DIRS}
+    ${CURL_INCLUDE_DIRS}
+    ${CPR_INCLUDE_DIRS}
+  )
+endif()
+
+message(STATUS "******** Mmo (Teeworlds) ********")
 message(STATUS "Target OS: ${TARGET_OS} ${TARGET_BITS}bit")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -387,6 +421,18 @@ function(show_dependency_status OUTPUT_NAME NAME)
   endif()
 endfunction()
 
+function(send_if_not_found_dependency OUTPUT_NAME NAME PART)
+  if(NOT(${NAME}_FOUND))
+    if("${PART}" MATCHES "SERVER" AND ${PART}_COMPILE)
+      message(SEND_ERROR "You must install ${OUTPUT_NAME} to compile Teeworlds MMO (Server)")
+    elseif("${PART}" MATCHES "CLIENT" AND ${PART}_COMPILE)
+      message(SEND_ERROR "You must install ${OUTPUT_NAME} to compile Teeworlds MMO (Client)")
+    elseif("${PART}" MATCHES "ALL" AND (SERVER_COMPILE OR CLIENT_COMPILE))
+      message(SEND_ERROR "You must install ${OUTPUT_NAME} to compile Teeworlds MMO (All)")
+    endif()
+  endif()
+endfunction()
+
 show_dependency_status("PythonInterp" PYTHONINTERP)
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   show_dependency_status("Dmg tools" DMGTOOLS)
@@ -396,6 +442,11 @@ endif()
 if(COMPILE_SERVER)
   show_dependency_status("MySQL" MYSQL)
   show_dependency_status("ICU" ICU)
+
+  if(DISCORD_COMPILE)
+    show_dependency_status("Curl" CURL)
+    show_dependency_status("OpenSSL Crypto" CRYPTO) 
+  endif()
 elseif(COMPILE_CLIENT)
   show_dependency_status("Curl" CURL)
   show_dependency_status("Freetype" FREETYPE)
@@ -407,29 +458,15 @@ elseif(COMPILE_CLIENT)
   show_dependency_status("DiscordGameSDK" DISCORDGAMESDK)
 endif()
 
-if(NOT(PYTHONINTERP_FOUND))
-  message(SEND_ERROR "You must install Python to compile Teeworlds MMO(All)")
-endif()
+send_if_not_found_dependency("Python" PYTHONINTERP ALL)
+send_if_not_found_dependency("Curl" CURL ALL)
 
-if(SERVER_COMPILE AND NOT(MYSQL_FOUND))
-  message(SEND_ERROR "You must install MySQL to compile Teeworlds MMO(Server)")
-endif()
-if(SERVER_COMPILE AND NOT(ICU_FOUND))
-  message(SEND_ERROR "You must install ICU to compile Teeworlds MMO(Server)")
-endif()
+send_if_not_found_dependency("MySQL" MYSQL SERVER)
+send_if_not_found_dependency(ICU "ICU" SERVER)
 
-if(CLIENT_COMPILE AND NOT(CURL_FOUND))
-  message(SEND_ERROR "You must install Curl to compile Teeworlds MMO(Client)")
-endif()
-if(CLIENT_COMPILE AND NOT(FREETYPE_FOUND))
-  message(SEND_ERROR "You must install Freetype to compile Teeworlds MMO(Client)")
-endif()
-if(CLIENT_COMPILE AND NOT(SDL2_FOUND))
-  message(SEND_ERROR "You must install SDL2 to compile Teeworlds MMO(Client)")
-endif()
-if(CLIENT_COMPILE AND NOT(DISCORDGAMESDK_FOUND))
-  message(SEND_ERROR "You must install Discord GameSDK to compile Teeworlds MMO(Client)")
-endif()
+send_if_not_found_dependency(FREETYPE "Freetype" CLIENT)
+send_if_not_found_dependency(SDL2 "SDL2" CLIENT)
+send_if_not_found_dependency(DISCORDGAMESDK "Discord GameSDK" CLIENT)
 
 if(NOT(GTEST_FOUND))
   if(DOWNLOAD_GTEST)
@@ -554,6 +591,13 @@ set(COPY_FILES_SERVER
   ${ICU_COPY_FILES}
   ${MYSQL_COPY_FILES}
 )
+
+if(DISCORD_COMPILE)
+  set(COPY_FILES_SERVER 
+    ${COPY_FILES_SERVER} 
+    ${CURL_COPY_FILES}
+    )
+endif()
 
 file(COPY ${COPY_FILES_CLIENT} ${COPY_FILES_SERVER} DESTINATION .)
 
@@ -829,12 +873,23 @@ if(SERVER_COMPILE)
   file(GLOB_RECURSE GAME_SERVER "src/game/server/*.cpp" "src/game/server/*.h")
   file(GLOB LOCALIZED_SERVER "src/teeother/components/*.cpp" "src/teeother/components/*.h" "src/teeother/tl/*.h" "src/teeother/system/*.h")
 
+  if(DISCORD_COMPILE)
+    file(GLOB DISCORD_BOT "discord_deps/cpr/include/cpr/*.cpp")
+  endif()
+
+  
+
   set(GAME_GENERATED_SERVER
     src/generated/server_data.cpp
     src/generated/server_data.h)
 
   # # #
   set(SERVER_SRC ${ENGINE_SERVER} ${GAME_SERVER} ${GAME_GENERATED_SERVER} ${LOCALIZED_SERVER})
+
+  if(DISCORD_COMPILE)
+    set(SERVER_SRC ${SERVER_SRC} ${DISCORD_BOT})
+  endif()
+
   if(TARGET_OS STREQUAL "windows")
     set(SERVER_ICON "other/icons/${SERVER_EXECUTABLE}.rc")
   else()
