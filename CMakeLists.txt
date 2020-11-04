@@ -462,11 +462,11 @@ send_if_not_found_dependency("Python" PYTHONINTERP ALL)
 send_if_not_found_dependency("Curl" CURL ALL)
 
 send_if_not_found_dependency("MySQL" MYSQL SERVER)
-send_if_not_found_dependency(ICU "ICU" SERVER)
+send_if_not_found_dependency("ICU" ICU SERVER)
 
-send_if_not_found_dependency(FREETYPE "Freetype" CLIENT)
-send_if_not_found_dependency(SDL2 "SDL2" CLIENT)
-send_if_not_found_dependency(DISCORDGAMESDK "Discord GameSDK" CLIENT)
+send_if_not_found_dependency("Freetype" FREETYPE CLIENT)
+send_if_not_found_dependency("SDL2" SDL2 CLIENT)
+send_if_not_found_dependency("DiscordGameSDK" DISCORDGAMESDK CLIENT)
 
 if(NOT(GTEST_FOUND))
   if(DOWNLOAD_GTEST)
