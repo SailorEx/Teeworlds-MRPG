@@ -780,15 +780,14 @@ endif()
 if(SERVER_COMPILE AND DISCORD_SERVER_COMPILE)
   # Include Cpr
   set(CPR_LIBRARIES cpr CACHE INTERNAL "")
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/discord_deps/cpr-external/include/cpr DESTINATION ${PROJECT_SOURCE_DIR}/discord_deps/cpr-external/include)
   set(CPR_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/discord_deps/cpr-external/include")
-  file(GLOB CPR_LIBRARIES_SRC "${PROJECT_SOURCE_DIR}/discord_deps/cpr-external/cpr/*.cpp" "${CPR_INCLUDE_DIRS}/*.h") 
+  file(GLOB CPR_LIBRARIES_SRC "${PROJECT_SOURCE_DIR}/discord_deps/cpr-external/cpr/*.cpp")
   add_library(${CPR_LIBRARIES} EXCLUDE_FROM_ALL OBJECT ${CPR_LIBRARIES_SRC})
+  target_include_directories(${CPR_LIBRARIES} PUBLIC ${CPR_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS})
   if((MINGW OR TARGET_OS STREQUAL "linux") AND PREFER_BUNDLED_LIBS)
-    target_link_libraries(${CPR_LIBRARIES} -lcurl) # wtf
+    target_link_libraries(${CPR_LIBRARIES} PRIVATE -lcurl)
   endif()
-  target_link_libraries(${CPR_LIBRARIES} ${CURL_LIBRARIES})
-  target_include_directories(${CPR_LIBRARIES} PUBLIC ${CPR_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
+  target_link_libraries(${CPR_LIBRARIES} PRIVATE ${CURL_LIBRARIES})
   list(APPEND TARGETS_DEP ${CPR_LIBRARIES})
 
   # Include Sleepy-Discord
@@ -800,24 +799,17 @@ if(SERVER_COMPILE AND DISCORD_SERVER_COMPILE)
 
   # Including Cpr to Sleepy-Discord
   set(SLEEPY_DISCORD_LIBRARIES)
-  target_include_directories(sleepy-discord PUBLIC ${CPR_INCLUDE_DIRS})
   list(APPEND SLEEPY_DISCORD_LIBRARIES ${CPR_LIBRARIES})
   target_compile_definitions(sleepy-discord PUBLIC EXISTENT_CPR)
 
-  # Including Asio to Sleepy-Discord
-  target_include_directories(sleepy-discord PUBLIC "${PROJECT_SOURCE_DIR}/discord_deps/asio/asio/include")
+  # Including Asio and Websocketpp header libraries to Sleepy-Discord
+  target_include_directories(sleepy-discord PUBLIC "${PROJECT_SOURCE_DIR}/discord_deps/asio/asio/include" "${PROJECT_SOURCE_DIR}/discord_deps/websocketpp")
   target_compile_definitions(sleepy-discord PUBLIC EXISTENT_ASIO)
-
-  # Including Websocketpp to Sleepy-Discord
-  target_include_directories(sleepy-discord PUBLIC "${PROJECT_SOURCE_DIR}/discord_deps/websocketpp")
   target_compile_definitions(sleepy-discord PUBLIC EXISTENT_WEBSOCKETPP)
-
+  
   # Including OpenSSL to Sleepy-Discord
-  if (WIN32)
-	list(APPEND SLEEPY_DISCORD_LIBRARIES ${OPENSSL_LIBRARY})
-  elseif (UNIX)
-	list(APPEND SLEEPY_DISCORD_LIBRARIES ${OPENSSL_LIBRARY} "Threads::Threads")
-  endif()
+  target_include_directories(sleepy-discord PRIVATE ${OPENSSL_INCLUDE_DIRS})
+  list(APPEND SLEEPY_DISCORD_LIBRARIES ${OPENSSL_SSL_LIBRARY})
 
   #Todo add support for it
   target_compile_definitions(sleepy-discord PUBLIC NONEXISTENT_UWEBSOCKETS)

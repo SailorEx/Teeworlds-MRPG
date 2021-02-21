@@ -1,7 +1,6 @@
-#ifndef __SHARED_LOCALIZATION__
-#define __SHARED_LOCALIZATION__
+#ifndef TEEOTHER_LOCALIZATION
+#define TEEOTHER_LOCALIZATION
 
-#include <unicode/tmutfmt.h>
 #include <teeother/tl/hashtable.h>
 
 #define LPLURAL(TEXT_SINGULAR, TEXT_PLURAL) TEXT_PLURAL
@@ -31,7 +30,6 @@ public:
 		{
 		public:
 			char* m_apVersions[NUM_PLURALTYPES];
-			
 			CEntry()
 			{
 				for(int i=0; i<NUM_PLURALTYPES; i++)
@@ -55,10 +53,10 @@ public:
 		hashtable< CEntry, 128 > m_Translations;
 	
 	public:
-		UPluralRules* m_pPluralRules;
-		UNumberFormat* m_pValueFormater;
-		UNumberFormat* m_pNumberFormater;
-		UNumberFormat* m_pPercentFormater;
+		struct UPluralRules* m_pPluralRules;
+		void* /*UNumberFormat**/ m_pValueFormater;
+		void* /*UNumberFormat**/ m_pNumberFormater;
+		void* /*UNumberFormat**/ m_pPercentFormater;
 
 		CLanguage();
 		CLanguage(const char* pName, const char* pFilename, const char* pParentFilename);
@@ -84,7 +82,7 @@ public:
 
 protected:
 	CLanguage* m_pMainLanguage;
-	UConverter* m_pUtf8Converter;
+	struct UConverter* m_pUtf8Converter;
 
 public:
 	array<CLanguage*> m_pLanguages;
@@ -102,22 +100,22 @@ public:
 	CLocalization(class IStorageEngine* pStorage);
 	virtual ~CLocalization();
 	
-	virtual bool InitConfig(int argc, const char** argv);
 	virtual bool Init();
-	
-	inline bool GetWritingDirection() const { return (!m_pMainLanguage ? DIRECTION_LTR : m_pMainLanguage->GetWritingDirection()); }
 	
 	//localize
 	const char* Localize(const char* pLanguageCode, const char* pText);
+
 	//localize and find the appropriate plural form based on Number
 	const char* Localize_P(const char* pLanguageCode, int Number, const char* pText);
 	
 	//format
 	void Format_V(dynamic_string& Buffer, const char* pLanguageCode, const char* pText, va_list VarArgs);
 	void Format(dynamic_string& Buffer, const char* pLanguageCode, const char* pText, ...);
+
 	//localize, format
 	void Format_VL(dynamic_string& Buffer, const char* pLanguageCode, const char* pText, va_list VarArgs);
 	void Format_L(dynamic_string& Buffer, const char* pLanguageCode, const char* pText, ...);
+
 	//localize, find the appropriate plural form based on Number and format
 	void Format_VLP(dynamic_string& Buffer, const char* pLanguageCode, int Number, const char* pText, va_list VarArgs);
 	void Format_LP(dynamic_string& Buffer, const char* pLanguageCode, int Number, const char* pText, ...);

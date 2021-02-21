@@ -4,7 +4,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   pkg_check_modules(PC_ICUIN icu-i18n)
 endif()
 
-# TODO: idk why but encounter dependencies so we first check the PkgConfig path
+# libiraries
 set_extra_dirs_lib(ICU icu)
 find_library(ICUUC_LIBRARY
   NAMES "icuuc"
@@ -18,6 +18,7 @@ find_library(ICUIN_LIBRARY
   PATHS ${PATHS_ICU_LIBDIR}
   ${CROSSCOMPILING_NO_CMAKE_SYSTEM_PATH})
 
+# includes
 set_extra_dirs_include(ICU icu "${ICUUC_LIBRARY}")
 find_path(ICU_INCLUDEDIR 
   NAMES "unicode/udata.h"
@@ -25,6 +26,7 @@ find_path(ICU_INCLUDEDIR
   PATHS ${PATHS_ICU_INCLUDEDIR}
   ${CROSSCOMPILING_NO_CMAKE_SYSTEM_PATH})
 
+# mark found
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ICU DEFAULT_MSG ICUUC_LIBRARY ICU_INCLUDEDIR)
 mark_as_advanced(ICUUC_LIBRARY ICU_INCLUDEDIR)

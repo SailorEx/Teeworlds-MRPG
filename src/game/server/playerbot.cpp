@@ -421,14 +421,17 @@ void CPlayerBot::ThreadMobsPathFinder()
 
 	if(GetBotType() == BotsTypes::TYPE_BOT_MOB)
 	{
-		if(m_TargetPos != vec2(0, 0) && (Server()->Tick() + 3 * m_ClientID) % (Server()->TickSpeed()) == 0)
+		if((Server()->Tick() + 3 * m_ClientID) % (Server()->TickSpeed()) == 0)
 		{
-			std::thread(&FindThreadPath, GS(), this, m_ViewPos, m_TargetPos).detach();
-		}
-		else if(m_TargetPos == vec2(0, 0) || distance(m_ViewPos, m_TargetPos) < 60.0f)
-		{
-			m_LastPosTick = Server()->Tick() + (Server()->TickSpeed() * 2 + rand() % 4);
-			std::thread(&GetThreadRandomWaypointTarget, GS(), this).detach();
+			if(m_TargetPos != vec2(0, 0))
+			{
+				std::thread(&FindThreadPath, GS(), this, m_ViewPos, m_TargetPos).detach();
+			}
+			else if(m_TargetPos == vec2(0, 0) || distance(m_ViewPos, m_TargetPos) < 60.0f)
+			{
+				m_LastPosTick = Server()->Tick() + (Server()->TickSpeed() * 2 + rand() % 4);
+				std::thread(&GetThreadRandomWaypointTarget, GS(), this).detach();
+			}
 		}
 	}
 }

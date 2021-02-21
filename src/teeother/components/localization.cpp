@@ -1,13 +1,14 @@
 #include <stdarg.h>
+#include "localization.h"
 
 #include <engine/external/json-parser/json.h>
-#include <engine/storage.h>
+#include <unicode/tmutfmt.h>
 #include <unicode/ushape.h>
 #include <unicode/ubidi.h>
 #include <unicode/ucnv.h>
 #include <unicode/upluralrules.h>
 
-#include "localization.h"
+#include <engine/storage.h>
 
 CLocalization::CLanguage::CLanguage()
 	: m_Loaded(false), m_Direction(CLocalization::DIRECTION_LTR),
@@ -34,7 +35,7 @@ m_pPluralRules(nullptr), m_pValueFormater(nullptr), m_pNumberFormater(nullptr), 
 	{
 		if(m_pValueFormater)
 		{
-			unum_close(m_pValueFormater);
+			unum_close(&m_pValueFormater);
 			m_pValueFormater = nullptr;
 		}
 		dbg_msg("Localization", "Can't create value formater for %s (error #%d)", m_aFilename, Status);
@@ -47,7 +48,7 @@ m_pPluralRules(nullptr), m_pValueFormater(nullptr), m_pNumberFormater(nullptr), 
 	{
 		if(m_pNumberFormater)
 		{
-			unum_close(m_pNumberFormater);
+			unum_close(&m_pNumberFormater);
 			m_pNumberFormater = nullptr;
 		}
 		dbg_msg("Localization", "Can't create number formater for %s (error #%d)", m_aFilename, Status);
@@ -60,7 +61,7 @@ m_pPluralRules(nullptr), m_pValueFormater(nullptr), m_pNumberFormater(nullptr), 
 	{
 		if(m_pPercentFormater)
 		{
-			unum_close(m_pPercentFormater);
+			unum_close(&m_pPercentFormater);
 			m_pPercentFormater = nullptr;
 		}
 		dbg_msg("Localization", "Can't create percent formater for %s (error #%d)", m_aFilename, Status);
@@ -90,16 +91,16 @@ CLocalization::CLanguage::~CLanguage()
 		
 		++Iter;
 	}
-	
-	if(m_pNumberFormater)
-		unum_close(m_pNumberFormater);
-	
-	if (m_pValueFormater)
-		unum_close(m_pValueFormater);
 
+	// formaters
+	if(m_pNumberFormater)
+		unum_close(&m_pNumberFormater);
+	if (m_pValueFormater)
+		unum_close(&m_pValueFormater);
 	if(m_pPercentFormater)
-		unum_close(m_pPercentFormater);
-		
+		unum_close(&m_pPercentFormater);
+
+	// rules
 	if(m_pPluralRules)
 		uplrules_close(m_pPluralRules);
 }
@@ -114,7 +115,7 @@ bool CLocalization::CLanguage::Load(CLocalization* pLocalization, IStorageEngine
 		return false;
 
 	const int FileSize = (int)io_length(File);
-	char *pFileData = (char *)mem_alloc(FileSize, 1);
+	char *pFileData = (char *)calloc(FileSize, 1);
 	io_read(File, pFileData, FileSize);
 	io_close(File);
 
@@ -123,7 +124,7 @@ bool CLocalization::CLanguage::Load(CLocalization* pLocalization, IStorageEngine
 	mem_zero(&JsonSettings, sizeof(JsonSettings));
 	char aError[256];
 	json_value* pJsonData = json_parse_ex(&JsonSettings, pFileData, FileSize, aError);
-	mem_free(pFileData);
+	free(pFileData);
 
 	if(pJsonData == nullptr)
 	{
@@ -277,12 +278,6 @@ CLocalization::~CLocalization()
 		ucnv_close(m_pUtf8Converter);
 }
 
-bool CLocalization::InitConfig(int argc, const char** argv)
-{
-	m_Cfg_MainLanguage.copy("en");
-	return true;
-}
-
 bool CLocalization::Init()
 {
 	UErrorCode Status = U_ZERO_ERROR;
@@ -302,9 +297,8 @@ bool CLocalization::Init()
 		return false;
 	}
 	
-
 	const int FileSize = (int)io_length(File);
-	char* pFileData = (char*)mem_alloc(FileSize, 1);
+	char* pFileData = (char*)calloc(FileSize, 1);
 	io_read(File, pFileData, FileSize);
 	io_close(File);
 
@@ -313,15 +307,16 @@ bool CLocalization::Init()
 	mem_zero(&JsonSettings, sizeof(JsonSettings));
 	char aError[256];
 	json_value* pJsonData = json_parse_ex(&JsonSettings, pFileData, FileSize, aError);
-	mem_free(pFileData);
+	free(pFileData);
 	if(pJsonData == nullptr)
 	{
-		delete[] pFileData;
-		return true; // return true because it's not a critical error
+		free(pFileData);
+		return true;
 	}
 
 	// extract data
 	m_pMainLanguage = nullptr;
+	const char *pMainLanguageFile = (*pJsonData)["main language file"];
 	const json_value &rStart = (*pJsonData)["language indices"];
 	if(rStart.type == json_array)
 	{
@@ -332,13 +327,9 @@ bool CLocalization::Init()
 				
 			if((const char *)rStart[i]["direction"] && str_comp((const char *)rStart[i]["direction"], "rtl") == 0)
 				pLanguage->SetWritingDirection(DIRECTION_RTL);
-				
-			if(m_Cfg_MainLanguage == pLanguage->GetFilename())
-			{
-				pLanguage->Load(this, Storage());
-				
+
+			if(pMainLanguageFile && str_comp(pMainLanguageFile, (const char*)rStart[i]["file"]) == 0)
 				m_pMainLanguage = pLanguage;
-			}
 		}
 	}
 
@@ -350,9 +341,9 @@ bool CLocalization::Init()
 const char* CLocalization::LocalizeWithDepth(const char* pLanguageCode, const char* pText, int Depth)
 {
 	CLanguage* pLanguage = m_pMainLanguage;
-	if(pLanguageCode)
+	if(pLanguageCode && (!pLanguage || str_comp(pLanguage->GetFilename(), pLanguageCode) != 0))
 	{
-		for(int i=0; i<m_pLanguages.size(); i++)
+		for(int i = 0; i < m_pLanguages.size(); i++)
 		{
 			if(str_comp(m_pLanguages[i]->GetFilename(), pLanguageCode) == 0)
 			{
@@ -385,9 +376,9 @@ const char* CLocalization::Localize(const char* pLanguageCode, const char* pText
 const char* CLocalization::LocalizeWithDepth_P(const char* pLanguageCode, int Number, const char* pText, int Depth)
 {
 	CLanguage* pLanguage = m_pMainLanguage;
-	if(pLanguageCode)
+	if(pLanguageCode && (!pLanguage || str_comp(pLanguage->GetFilename(), pLanguageCode) != 0))
 	{
-		for(int i=0; i<m_pLanguages.size(); i++)
+		for(int i = 0; i < m_pLanguages.size(); i++)
 		{
 			if(str_comp(m_pLanguages[i]->GetFilename(), pLanguageCode) == 0)
 			{
@@ -422,7 +413,8 @@ void CLocalization::AppendNumber(dynamic_string& Buffer, int& BufferIter, CLangu
 	UChar aBufUtf16[128];
 	
 	UErrorCode Status = U_ZERO_ERROR;
-	unum_format(pLanguage->m_pNumberFormater, Number, aBufUtf16, sizeof(aBufUtf16), nullptr, &Status);
+	UNumberFormat* pNumberFormater = static_cast <UNumberFormat*>(pLanguage->m_pNumberFormater);
+	unum_format(pNumberFormater, Number, aBufUtf16, sizeof(aBufUtf16), nullptr, &Status);
 
 	if(U_FAILURE(Status))
 		BufferIter = Buffer.append_at(BufferIter, "_NUMBER_");
@@ -448,7 +440,8 @@ void CLocalization::AppendValue(dynamic_string& Buffer, int& BufferIter, CLangua
 	UChar aBufUtf16[128];
 	
 	UErrorCode Status = U_ZERO_ERROR;
-	unum_format(pLanguage->m_pValueFormater, Number, aBufUtf16, sizeof(aBufUtf16), nullptr, &Status);
+	UNumberFormat* pValueFormater = static_cast <UNumberFormat*>(pLanguage->m_pValueFormater);
+	unum_format(pValueFormater, Number, aBufUtf16, sizeof(aBufUtf16), nullptr, &Status);
 	if(U_FAILURE(Status))
 		BufferIter = Buffer.append_at(BufferIter, "_VALUE_");
 	else
@@ -473,7 +466,8 @@ void CLocalization::AppendPercent(dynamic_string& Buffer, int& BufferIter, CLang
 	UChar aBufUtf16[128];
 	
 	UErrorCode Status = U_ZERO_ERROR;
-	unum_formatDouble(pLanguage->m_pPercentFormater, Number, aBufUtf16, sizeof(aBufUtf16), nullptr, &Status);
+	UNumberFormat* pPercentFormater = static_cast <UNumberFormat*>(pLanguage->m_pPercentFormater);
+	unum_formatDouble(pPercentFormater, Number, aBufUtf16, sizeof(aBufUtf16), nullptr, &Status);
 	if(U_FAILURE(Status))
 		BufferIter = Buffer.append_at(BufferIter, "_PERCENT_");
 	else
@@ -495,16 +489,16 @@ void CLocalization::AppendPercent(dynamic_string& Buffer, int& BufferIter, CLang
 
 void CLocalization::Format_V(dynamic_string& Buffer, const char* pLanguageCode, const char* pText, va_list VarArgs)
 {
-	CLanguage* pLanguage = m_pMainLanguage;	
-	if(pLanguageCode)
+	CLanguage* pLanguage = m_pMainLanguage;
+	if(pLanguageCode && (!pLanguage || str_comp(pLanguage->GetFilename(), pLanguageCode) != 0))
 	{
-		for(int i=0; i<m_pLanguages.size(); i++)
+		for(int i = 0; i < m_pLanguages.size(); i++)
 		{
-			if (str_comp(m_pLanguages[i]->GetFilename(), pLanguageCode) != 0)
-				continue;
-			
-			pLanguage = m_pLanguages[i];
-			break;
+			if(str_comp(m_pLanguages[i]->GetFilename(), pLanguageCode) == 0)
+			{
+				pLanguage = m_pLanguages[i];
+				break;
+			}
 		}
 	}
 	
